@@ -1,0 +1,32 @@
+# Link this app with: shopify app config link
+# client_id is filled automatically when you run shopify app dev
+client_id = ""
+
+name = "October Pincode"
+application_url = "https://example.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[access_scopes]
+scopes = "write_app_proxy"
+
+[auth]
+redirect_urls = [ "https://example.com/auth/callback" ]
+
+[webhooks]
+api_version = "2025-10"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = ["app/uninstalled"]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/scopes_update"
+  topics = ["app/scopes_update"]
+
+[app_proxy]
+url = "/apps/pincode/check"
+prefix = "apps"
+subpath = "pincode"
