@@ -8,8 +8,9 @@ import {
 } from "../lib/pincode-config.server.js";
 import { checkPincode, isValidIndianPincode } from "../lib/pincode.js";
 
-const fieldStyle = { display: "block", width: "100%", marginTop: "4px", padding: "8px" };
+const fieldStyle = { display: "block", width: "100%", marginTop: "4px", padding: "8px", boxSizing: "border-box" };
 const labelStyle = { display: "block", marginBottom: "12px", fontWeight: 500 };
+const helperStyle = { margin: "4px 0 0", color: "#6d7175", fontSize: "0.8125rem", lineHeight: 1.4 };
 const sectionStyle = {
   border: "1px solid #e3e3e3",
   borderRadius: "8px",
@@ -17,18 +18,33 @@ const sectionStyle = {
   marginBottom: "16px",
   background: "#fff",
 };
+const cardStyle = {
+  border: "1px solid #ddd",
+  borderRadius: "8px",
+  padding: "16px",
+  display: "grid",
+  gap: "12px",
+};
 const buttonStyle = {
   padding: "8px 16px",
   borderRadius: "6px",
   border: "1px solid #c9cccf",
   background: "#fff",
   cursor: "pointer",
+  fontSize: "0.875rem",
 };
 const primaryButtonStyle = {
   ...buttonStyle,
   background: "#303030",
   color: "#fff",
   borderColor: "#303030",
+};
+const pageStyle = {
+  padding: "20px",
+  fontFamily: "Inter, system-ui, sans-serif",
+  color: "#202223",
+  maxWidth: "720px",
+  margin: "0 auto",
 };
 
 export const loader = async ({ request }) => {
@@ -53,7 +69,7 @@ export const action = async ({ request }) => {
 
   if (intent === "reset") {
     const config = await savePincodeConfig(admin, undefined);
-    return { ok: true, config, message: "Defaults restored." };
+    return { ok: true, config, message: "Default India zones restored." };
   }
 
   const config = {
@@ -63,8 +79,32 @@ export const action = async ({ request }) => {
   };
 
   const saved = await savePincodeConfig(admin, config);
-  return { ok: true, config: saved, message: "Delivery settings saved." };
+  return { ok: true, config: saved, message: "Settings saved." };
 };
+
+function isCatchallZone(zone, index, zones) {
+  return zone.type === "catchall" || index === zones.length - 1;
+}
+
+function formatPreviewResult(result) {
+  if (!result.serviceable) {
+    return {
+      color: "#d72c0d",
+      text: `✗ ${result.message}`,
+    };
+  }
+
+  const days =
+    result.minDays === result.maxDays
+      ? `${result.minDays} business day${result.minDays === 1 ? "" : "s"}`
+      : `${result.minDays}–${result.maxDays} business days`;
+  const area = result.zone ? ` (${result.zone})` : "";
+
+  return {
+    color: "#008060",
+    text: `✓ Delivers in ${days}${area}`,
+  };
+}
 
 function ZoneEditor({ zones, onChange }) {
   const updateZone = (index, patch) => {
@@ -72,14 +112,19 @@ function ZoneEditor({ zones, onChange }) {
   };
 
   const removeZone = (index) => {
+    if (isCatchallZone(zones[index], index, zones) || zones.length <= 2) {
+      return;
+    }
     onChange(zones.filter((_, zoneIndex) => zoneIndex !== index));
   };
 
   const addZone = () => {
+    const catchall = zones[zones.length - 1];
+    const prefixZones = zones.slice(0, -1);
     onChange([
-      ...zones,
+      ...prefixZones,
       {
-        name: "New zone",
+        name: "New area",
         type: "prefix",
         prefixes: [],
         ranges: [],
@@ -87,53 +132,111 @@ function ZoneEditor({ zones, onChange }) {
         maxDays: 10,
         serviceable: true,
       },
+      catchall?.type === "catchall"
+        ? catchall
+        : {
+            name: "Rest of India",
+            type: "catchall",
+            minDays: 7,
+            maxDays: 10,
+            serviceable: true,
+          },
     ]);
   };
 
+  const catchallIndex = zones.length - 1;
+
   return (
     <div style={{ display: "grid", gap: "16px" }}>
-      {zones.map((zone, index) => (
-        <div
-          key={`${zone.name}-${index}`}
-          style={{
-            border: "1px solid #ddd",
-            borderRadius: "8px",
-            padding: "16px",
-            display: "grid",
-            gap: "12px",
-          }}
-        >
-          <label style={labelStyle}>
-            Zone name
-            <input
-              style={fieldStyle}
-              value={zone.name}
-              onChange={(event) => updateZone(index, { name: event.target.value })}
-            />
-          </label>
+      {zones.map((zone, index) => {
+        const isCatchall = isCatchallZone(zone, index, zones);
 
-          <label style={labelStyle}>
-            Match type
-            <select
-              value={zone.type}
-              onChange={(event) => updateZone(index, { type: event.target.value })}
-              style={fieldStyle}
-            >
-              <option value="prefix">Pincode prefix</option>
-              <option value="range">Pincode range</option>
-              <option value="catchall">Catch-all (fallback)</option>
-            </select>
-          </label>
+        if (isCatchall) {
+          return (
+            <div key={`catchall-${index}`} style={cardStyle}>
+              <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>
+                Everywhere else (Rest of India)
+              </h3>
+              <p style={{ ...helperStyle, margin: 0 }}>
+                Applies to any pincode not matched by the areas above.
+              </p>
 
-          {zone.type === "prefix" && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <label style={labelStyle}>
+                  From
+                  <input
+                    style={fieldStyle}
+                    type="number"
+                    min="1"
+                    value={String(zone.minDays ?? 7)}
+                    onChange={(event) =>
+                      updateZone(index, {
+                        type: "catchall",
+                        name: "Rest of India",
+                        minDays: Number.parseInt(event.target.value, 10) || 0,
+                      })
+                    }
+                  />
+                  <span style={helperStyle}>days</span>
+                </label>
+                <label style={labelStyle}>
+                  To
+                  <input
+                    style={fieldStyle}
+                    type="number"
+                    min="1"
+                    value={String(zone.maxDays ?? 10)}
+                    onChange={(event) =>
+                      updateZone(index, {
+                        type: "catchall",
+                        name: "Rest of India",
+                        maxDays: Number.parseInt(event.target.value, 10) || 0,
+                      })
+                    }
+                  />
+                  <span style={helperStyle}>days</span>
+                </label>
+              </div>
+
+              <label style={{ marginBottom: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={zone.serviceable !== false}
+                  onChange={(event) =>
+                    updateZone(index, { type: "catchall", name: "Rest of India", serviceable: event.target.checked })
+                  }
+                />{" "}
+                We deliver here
+              </label>
+            </div>
+          );
+        }
+
+        return (
+          <div key={`zone-${index}`} style={cardStyle}>
+            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>
+              Area {index + 1}
+            </h3>
+
             <label style={labelStyle}>
-              Prefixes (comma-separated)
+              Delivery area name
               <input
                 style={fieldStyle}
-                placeholder="110,400,560"
-                value={(zone.prefixes || []).join(",")}
+                placeholder="e.g. Metro cities, Other cities"
+                value={zone.name}
+                onChange={(event) => updateZone(index, { name: event.target.value, type: "prefix" })}
+              />
+            </label>
+
+            <label style={labelStyle}>
+              Pincode starts with
+              <input
+                style={fieldStyle}
+                placeholder="110, 400, 560"
+                value={(zone.prefixes || []).join(", ")}
                 onChange={(event) =>
                   updateZone(index, {
+                    type: "prefix",
                     prefixes: event.target.value
                       .split(",")
                       .map((value) => value.trim())
@@ -141,79 +244,64 @@ function ZoneEditor({ zones, onChange }) {
                   })
                 }
               />
+              <span style={helperStyle}>
+                Enter first 2–3 digits, separated by commas. Example: 110, 400, 560 for Delhi,
+                Mumbai, Bangalore
+              </span>
             </label>
-          )}
 
-          {zone.type === "range" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <label style={labelStyle}>
-                From
-                <input
-                  style={fieldStyle}
-                  value={zone.ranges?.[0]?.from || ""}
-                  onChange={(event) =>
-                    updateZone(index, {
-                      ranges: [{ from: event.target.value, to: zone.ranges?.[0]?.to || "" }],
-                    })
-                  }
-                />
-              </label>
-              <label style={labelStyle}>
-                To
-                <input
-                  style={fieldStyle}
-                  value={zone.ranges?.[0]?.to || ""}
-                  onChange={(event) =>
-                    updateZone(index, {
-                      ranges: [{ from: zone.ranges?.[0]?.from || "", to: event.target.value }],
-                    })
-                  }
-                />
-              </label>
+            <div>
+              <span style={{ fontWeight: 500, display: "block", marginBottom: "8px" }}>Delivery time</span>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>
+                  From
+                  <input
+                    style={fieldStyle}
+                    type="number"
+                    min="1"
+                    value={String(zone.minDays ?? 7)}
+                    onChange={(event) =>
+                      updateZone(index, { minDays: Number.parseInt(event.target.value, 10) || 0 })
+                    }
+                  />
+                  <span style={helperStyle}>days</span>
+                </label>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>
+                  To
+                  <input
+                    style={fieldStyle}
+                    type="number"
+                    min="1"
+                    value={String(zone.maxDays ?? 10)}
+                    onChange={(event) =>
+                      updateZone(index, { maxDays: Number.parseInt(event.target.value, 10) || 0 })
+                    }
+                  />
+                  <span style={helperStyle}>days</span>
+                </label>
+              </div>
             </div>
-          )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-            <label style={labelStyle}>
-              Min days
-              <input
-                style={fieldStyle}
-                type="number"
-                value={String(zone.minDays ?? 7)}
-                onChange={(event) =>
-                  updateZone(index, { minDays: Number.parseInt(event.target.value, 10) || 0 })
-                }
-              />
-            </label>
-            <label style={labelStyle}>
-              Max days
-              <input
-                style={fieldStyle}
-                type="number"
-                value={String(zone.maxDays ?? 10)}
-                onChange={(event) =>
-                  updateZone(index, { maxDays: Number.parseInt(event.target.value, 10) || 0 })
-                }
-              />
-            </label>
-            <label style={{ alignSelf: "end" }}>
+            <label style={{ marginBottom: 0 }}>
               <input
                 type="checkbox"
                 checked={zone.serviceable !== false}
                 onChange={(event) => updateZone(index, { serviceable: event.target.checked })}
               />{" "}
-              Serviceable
+              We deliver here
             </label>
-          </div>
 
-          <button type="button" style={buttonStyle} onClick={() => removeZone(index)}>
-            Remove zone
-          </button>
-        </div>
-      ))}
+            {index < catchallIndex && zones.length > 2 && (
+              <button type="button" style={buttonStyle} onClick={() => removeZone(index)}>
+                Remove this area
+              </button>
+            )}
+          </div>
+        );
+      })}
 
       <button type="button" style={buttonStyle} onClick={addZone}>
-        Add zone
+        Add delivery area
       </button>
     </div>
   );
@@ -226,10 +314,12 @@ export default function Index() {
 
   const [config, setConfig] = useState(initialConfig);
   const [testPincode, setTestPincode] = useState("110001");
+  const [checkedPincode, setCheckedPincode] = useState(null);
 
   useEffect(() => {
     if (actionData?.config) {
       setConfig(actionData.config);
+      setCheckedPincode(null);
     }
   }, [actionData?.config]);
 
@@ -239,40 +329,50 @@ export default function Index() {
     }
   }, [actionData?.message]);
 
-  const preview = useMemo(() => checkPincode(testPincode, config), [testPincode, config]);
+  const preview = useMemo(() => {
+    if (!checkedPincode) {
+      return null;
+    }
+    return checkPincode(checkedPincode, config);
+  }, [checkedPincode, config]);
+
+  const previewDisplay = preview ? formatPreviewResult(preview) : null;
   const isSaving = navigation.state !== "idle";
-  const pincodeError =
-    testPincode && !isValidIndianPincode(testPincode)
-      ? "Enter a valid 6-digit Indian pincode"
-      : null;
+
+  const handleCheckPincode = () => {
+    setCheckedPincode(testPincode.trim());
+  };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Inter, system-ui, sans-serif", color: "#202223" }}>
-      <h1 style={{ fontSize: "1.5rem", marginTop: 0 }}>October Pincode Delivery</h1>
+    <div style={pageStyle}>
+      <h1 style={{ fontSize: "1.5rem", marginTop: 0, marginBottom: "8px" }}>Delivery by pincode</h1>
+      <p style={{ marginTop: 0, marginBottom: "24px", color: "#6d7175", lineHeight: 1.5 }}>
+        Set how long delivery takes for different parts of India. Customers see this on the product
+        page when they enter their pincode.
+      </p>
 
       <section style={sectionStyle}>
-        <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>Warehouse</h2>
         <label style={labelStyle}>
-          Origin pincode
+          Your warehouse pincode
           <input
             style={fieldStyle}
+            inputMode="numeric"
+            maxLength={6}
             value={config.warehousePincode}
             onChange={(event) =>
               setConfig((current) => ({ ...current, warehousePincode: event.target.value }))
             }
           />
+          <span style={helperStyle}>Where orders ship from (for your reference).</span>
         </label>
-        <p style={{ margin: "8px 0 0", color: "#6d7175", fontSize: "0.875rem" }}>
-          Used for reference in admin. Delivery estimates are zone-based.
-        </p>
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>Non-serviceable message</h2>
         <label style={labelStyle}>
-          Default message
+          Message when we don&apos;t deliver
           <input
             style={fieldStyle}
+            placeholder="Sorry, we do not deliver to this pincode yet."
             value={config.defaultMessage}
             onChange={(event) =>
               setConfig((current) => ({ ...current, defaultMessage: event.target.value }))
@@ -282,9 +382,9 @@ export default function Index() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>Delivery zones</h2>
-        <p style={{ marginTop: 0 }}>
-          Zones are evaluated top to bottom. Use a catch-all zone last for Rest of India.
+        <h2 style={{ fontSize: "1.1rem", marginTop: 0, marginBottom: "8px" }}>Delivery zones</h2>
+        <p style={{ marginTop: 0, marginBottom: "16px", color: "#6d7175", lineHeight: 1.5 }}>
+          Add areas and delivery times. We check the customer&apos;s pincode against these rules.
         </p>
         <ZoneEditor
           zones={config.zones}
@@ -293,21 +393,44 @@ export default function Index() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>Preview</h2>
-        <label style={labelStyle}>
-          Test pincode
+        <h2 style={{ fontSize: "1.1rem", marginTop: 0, marginBottom: "12px" }}>Try a pincode</h2>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
           <input
-            style={fieldStyle}
+            style={{ ...fieldStyle, flex: "1 1 200px", marginTop: 0 }}
+            inputMode="numeric"
+            maxLength={6}
+            placeholder="e.g. 110001"
             value={testPincode}
             onChange={(event) => setTestPincode(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleCheckPincode();
+              }
+            }}
           />
-        </label>
-        {pincodeError && (
-          <p style={{ color: "#d72c0d", marginTop: 0 }}>{pincodeError}</p>
+          <button type="button" style={primaryButtonStyle} onClick={handleCheckPincode}>
+            Check
+          </button>
+        </div>
+        {checkedPincode && !isValidIndianPincode(checkedPincode) && (
+          <p style={{ color: "#d72c0d", marginBottom: 0, marginTop: "12px" }}>
+            ✗ Please enter a valid 6-digit Indian pincode.
+          </p>
         )}
-        <pre style={{ background: "#f6f6f7", padding: "12px", borderRadius: "8px" }}>
-          {JSON.stringify(preview, null, 2)}
-        </pre>
+        {previewDisplay && (
+          <p
+            style={{
+              color: previewDisplay.color,
+              marginBottom: 0,
+              marginTop: "12px",
+              fontWeight: 500,
+              lineHeight: 1.5,
+            }}
+          >
+            {previewDisplay.text}
+          </p>
+        )}
       </section>
 
       <Form method="post">
@@ -315,14 +438,14 @@ export default function Index() {
         <input type="hidden" name="defaultMessage" value={config.defaultMessage} />
         <input type="hidden" name="zonesJson" value={JSON.stringify(config.zones)} />
         <button type="submit" style={primaryButtonStyle} disabled={isSaving}>
-          {isSaving ? "Saving…" : "Save settings"}
+          {isSaving ? "Saving…" : "Save"}
         </button>
       </Form>
 
       <Form method="post" style={{ marginTop: "12px" }}>
         <input type="hidden" name="intent" value="reset" />
         <button type="submit" style={buttonStyle} disabled={isSaving}>
-          Restore India defaults
+          Reset to default India zones
         </button>
       </Form>
     </div>
@@ -343,8 +466,8 @@ export function ErrorBoundary() {
     error instanceof Error ? error.message : "Could not load delivery settings.";
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "Inter, system-ui, sans-serif" }}>
-      <h1 style={{ fontSize: "1.25rem", marginTop: 0 }}>October Pincode Delivery</h1>
+    <div style={pageStyle}>
+      <h1 style={{ fontSize: "1.25rem", marginTop: 0 }}>Delivery by pincode</h1>
       <p>{message}</p>
     </div>
   );
