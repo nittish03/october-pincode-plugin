@@ -2,7 +2,6 @@
 
 client_id = "06ed9fe65a2d63a7db2fdce227c977a8"
 name = "October Pincode"
-# After Vercel deploy, set to your production URL, e.g. https://october-pincode.vercel.app
 application_url = "https://pincode-plugin.vercel.app"
 embedded = true
 
@@ -12,16 +11,21 @@ automatically_update_urls_on_dev = true
 [webhooks]
 api_version = "2026-10"
 
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = ["app/uninstalled"]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/scopes_update"
+  topics = ["app/scopes_update"]
+
 [access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_app_proxy"
 
 [auth]
-# Match application_url after deploy, e.g. https://october-pincode.vercel.app/auth/callback
 redirect_urls = [ "https://pincode-plugin.vercel.app/auth/callback" ]
 
 [app_proxy]
-# Base path on the app server; Shopify appends the storefront path after subpath.
 # Storefront /apps/pincode/check → app /apps/pincode/check
 url = "/apps/pincode"
 prefix = "apps"

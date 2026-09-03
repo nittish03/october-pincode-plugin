@@ -6,11 +6,15 @@ import {
 } from "@shopify/shopify-app-react-router/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server.js";
-import { getAppUrl } from "./utils/app-url.js";
+import {
+  getAppUrl,
+  getShopifyApiKey,
+  getShopifyApiSecret,
+} from "./utils/app-url.js";
 
 const shopify = shopifyApp({
-  apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
+  apiKey: getShopifyApiKey(),
+  apiSecretKey: getShopifyApiSecret(),
   apiVersion: ApiVersion.October25,
   scopes: process.env.SCOPES?.split(","),
   appUrl: getAppUrl(),

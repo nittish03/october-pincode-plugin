@@ -75,7 +75,18 @@ In the embedded app admin:
 4. Deploy: `npx vercel --prod`
 5. Put the Vercel URL into `shopify.app.october-pincode.toml` (`application_url` + `redirect_urls`), then `shopify app deploy`.
 
-Env vars on Vercel: `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SCOPES`, `DATABASE_URL`, `SHOPIFY_APP_URL` (your `*.vercel.app` URL).
+Env vars on Vercel:
+
+| Variable | Example / notes |
+|----------|-----------------|
+| `SHOPIFY_API_KEY` | Partner Dashboard client ID (alias: `API_KEY`) |
+| `SHOPIFY_API_SECRET` | Partner Dashboard secret (alias: `SECRET`) |
+| `SCOPES` | `write_app_proxy` |
+| `DATABASE_URL` | Neon Postgres pooled URL |
+| `SHOPIFY_APP_URL` | `https://pincode-plugin.vercel.app` |
+| `SHOP_CUSTOM_DOMAIN` | `octoberstore.in` — **required** for App Proxy on custom domain |
+
+After updating env vars or scopes, redeploy on Vercel, then open the app in Shopify Admin once to refresh the OAuth session.
 
 ### 7. Push theme changes
 
@@ -161,7 +172,7 @@ october-pincode-app/
 
 - `write_app_proxy` — required for App Proxy
 
-Shop metafields (`custom.pincode_config`) use the Admin API session; no extra product scopes needed.
+Shop metafields (`custom.pincode_config`) use the Admin API session; no extra metafield scopes are required for shop-level JSON metafields.
 
 ## Blockers
 

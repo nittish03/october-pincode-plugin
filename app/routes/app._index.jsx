@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
-import { useAppBridge } from "@shopify/app-bridge-react";
+import { Form, useActionData, useLoaderData, useNavigation, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server.js";
 import {
@@ -172,7 +171,6 @@ export default function Index() {
   const { config: initialConfig } = useLoaderData();
   const actionData = useActionData();
   const navigation = useNavigation();
-  const shopify = useAppBridge();
 
   const [config, setConfig] = useState(initialConfig);
   const [testPincode, setTestPincode] = useState("110001");
@@ -184,10 +182,10 @@ export default function Index() {
   }, [actionData?.config]);
 
   useEffect(() => {
-    if (actionData?.message) {
-      shopify.toast.show(actionData.message);
+    if (actionData?.message && window.shopify?.toast) {
+      window.shopify.toast.show(actionData.message);
     }
-  }, [actionData?.message, shopify]);
+  }, [actionData?.message]);
 
   const preview = useMemo(() => checkPincode(testPincode, config), [testPincode, config]);
   const isSaving = navigation.state !== "idle";
@@ -256,6 +254,28 @@ export default function Index() {
           Restore India defaults
         </s-button>
       </Form>
+    </s-page>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+
+  if (
+    error?.constructor?.name === "ErrorResponse" ||
+    error?.constructor?.name === "ErrorResponseImpl"
+  ) {
+    return boundary.error(error);
+  }
+
+  const message =
+    error instanceof Error ? error.message : "Could not load delivery settings.";
+
+  return (
+    <s-page heading="October Pincode Delivery">
+      <s-section>
+        <p>{message}</p>
+      </s-section>
     </s-page>
   );
 }
