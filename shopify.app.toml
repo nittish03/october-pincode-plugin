@@ -4,7 +4,7 @@
 client_id = "06ed9fe65a2d63a7db2fdce227c977a8"
 name = "October Pincode"
 # After Vercel deploy: https://YOUR-PROJECT.vercel.app
-application_url = "https://example.com"
+application_url = "https://pincode-plugin.vercel.app"
 embedded = true
 
 [build]
@@ -15,7 +15,7 @@ include_config_on_deploy = true
 scopes = "write_app_proxy"
 
 [auth]
-redirect_urls = [ "https://example.com/auth/callback" ]
+redirect_urls = [ "https://pincode-plugin.vercel.app/auth/callback" ]
 
 [webhooks]
 api_version = "2026-10"
@@ -29,6 +29,6 @@ api_version = "2026-10"
   topics = ["app/scopes_update"]
 
 [app_proxy]
-url = "/apps/pincode/check"
+url = "/apps/pincode"
 prefix = "apps"
 subpath = "pincode"

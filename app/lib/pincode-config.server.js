@@ -42,20 +42,29 @@ const CONFIG_MUTATION = `#graphql
 `;
 
 /**
- * @param {import("@shopify/shopify-app-react-router/server").AdminApiContext} admin
+ * @param {import("@shopify/shopify-app-react-router/server").AdminApiContext | undefined} admin
  */
 export async function getPincodeConfig(admin) {
-  const response = await admin.graphql(CONFIG_QUERY);
-  const payload = await response.json();
-  const rawValue = payload?.data?.shop?.metafield?.value;
-
-  if (!rawValue) {
+  if (!admin) {
     return normalizePincodeConfig(DEFAULT_PINCODE_CONFIG);
   }
 
   try {
-    return normalizePincodeConfig(JSON.parse(rawValue));
-  } catch {
+    const response = await admin.graphql(CONFIG_QUERY);
+    const payload = await response.json();
+    const rawValue = payload?.data?.shop?.metafield?.value;
+
+    if (!rawValue) {
+      return normalizePincodeConfig(DEFAULT_PINCODE_CONFIG);
+    }
+
+    try {
+      return normalizePincodeConfig(JSON.parse(rawValue));
+    } catch {
+      return normalizePincodeConfig(DEFAULT_PINCODE_CONFIG);
+    }
+  } catch (error) {
+    console.error("getPincodeConfig failed, using defaults:", error);
     return normalizePincodeConfig(DEFAULT_PINCODE_CONFIG);
   }
 }

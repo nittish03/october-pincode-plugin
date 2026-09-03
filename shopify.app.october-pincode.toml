@@ -21,6 +21,8 @@ scopes = "write_app_proxy"
 redirect_urls = [ "https://pincode-plugin.vercel.app/auth/callback" ]
 
 [app_proxy]
-url = "/apps/pincode/check"
+# Base path on the app server; Shopify appends the storefront path after subpath.
+# Storefront /apps/pincode/check → app /apps/pincode/check
+url = "/apps/pincode"
 prefix = "apps"
 subpath = "pincode"
