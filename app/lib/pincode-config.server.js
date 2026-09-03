@@ -5,7 +5,7 @@ import {
 
 const METAFIELD_NAMESPACE = "custom";
 const METAFIELD_KEY = "pincode_config";
-
+ 
 const SHOP_ID_QUERY = `#graphql
   query ShopId {
     shop {
