@@ -1,7 +1,7 @@
 import {
   DEFAULT_PINCODE_CONFIG,
   normalizePincodeConfig,
-} from "./pincode.server.js";
+} from "./pincode.js";
 
 const METAFIELD_NAMESPACE = "custom";
 const METAFIELD_KEY = "pincode_config";
@@ -62,7 +62,7 @@ export async function getPincodeConfig(admin) {
 
 /**
  * @param {import("@shopify/shopify-app-react-router/server").AdminApiContext} admin
- * @param {import("./pincode.server.js").PincodeConfig} config
+ * @param {import("./pincode.js").PincodeConfig} config
  */
 export async function savePincodeConfig(admin, config) {
   const normalized = normalizePincodeConfig(config);

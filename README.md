@@ -67,19 +67,15 @@ In the embedded app admin:
 4. Use the preview panel to test pincodes.
 5. Click **Save settings** — stored in shop metafield `custom.pincode_config` (JSON).
 
-### 6. Deploy the app (production)
+### 6. Deploy the app (production — Vercel)
 
-```bash
-shopify app deploy
-```
+1. Create a free [Neon](https://console.neon.tech) Postgres DB → copy `DATABASE_URL` (pooled, `?sslmode=require`).
+2. From this folder: `npx vercel link` then set env vars (see `.env.example`).
+3. Run migrations once: `DATABASE_URL=... npx prisma migrate deploy`
+4. Deploy: `npx vercel --prod`
+5. Put the Vercel URL into `shopify.app.october-pincode.toml` (`application_url` + `redirect_urls`), then `shopify app deploy`.
 
-Host on Shopify's recommended platform (Fly.io, etc.) or your own Node host running:
-
-```bash
-npm run setup && npm run build && npm run start
-```
-
-Set production env vars: `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SCOPES`, `SHOPIFY_APP_URL`.
+Env vars on Vercel: `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SCOPES`, `DATABASE_URL`, `SHOPIFY_APP_URL` (your `*.vercel.app` URL).
 
 ### 7. Push theme changes
 
@@ -141,7 +137,7 @@ If checks fail locally, confirm the tunnel is running and the app proxy subpath 
 october-pincode-app/
 ├── app/
 │   ├── lib/
-│   │   ├── pincode.server.js          # Validation + zone matching
+│   │   ├── pincode.js                 # Validation + zone matching
 │   │   └── pincode-config.server.js   # Shop metafield read/write
 │   ├── routes/
 │   │   ├── app._index.jsx             # Admin UI
@@ -152,8 +148,10 @@ october-pincode-app/
 │   ├── shopify.server.js
 │   ├── db.server.js
 │   └── root.jsx
-├── prisma/schema.prisma               # Session storage (SQLite)
-├── shopify.app.toml                   # App + proxy config
+├── prisma/schema.prisma               # Session storage (Postgres / Neon)
+├── react-router.config.js             # Vercel preset
+├── vercel.json
+├── shopify.app.october-pincode.toml   # App + proxy config
 ├── shopify.web.toml
 ├── vite.config.js
 └── README.md

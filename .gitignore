@@ -1,9 +1,41 @@
+# Dependencies
 node_modules/
-/build/
-/.cache/
+
+# Environment / secrets
 .env
 .env.*
 !.env.example
+.env.october-pincode
+
+# Keys / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+localhost.pem
+localhost-key.pem
+
+# Shopify CLI
+.shopify/
+
+# Databases
+*.sqlite
+*.sqlite-journal
+dev.sqlite
+prisma/*.db
+prisma/*.db-journal
 /prisma/dev.sqlite
 /prisma/dev.sqlite-journal
-.shopify/
+
+# Build / framework
+build/
+dist/
+.react-router/
+.cache/
+
+# Deploy
+.vercel/
+
+# OS / editor
+.DS_Store
+*.log

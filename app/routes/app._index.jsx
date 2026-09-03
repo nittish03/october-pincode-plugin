@@ -7,7 +7,7 @@ import {
   getPincodeConfig,
   savePincodeConfig,
 } from "../lib/pincode-config.server.js";
-import { checkPincode, isValidIndianPincode } from "../lib/pincode.server.js";
+import { checkPincode, isValidIndianPincode } from "../lib/pincode.js";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);

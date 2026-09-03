@@ -1,13 +1,15 @@
-# Link this app with: shopify app config link
-# client_id is filled automatically when you run shopify app dev
-client_id = ""
+# Prefer shopify.app.october-pincode.toml (has client_id).
+# Use: shopify app config use shopify.app.october-pincode.toml
 
+client_id = "06ed9fe65a2d63a7db2fdce227c977a8"
 name = "October Pincode"
+# After Vercel deploy: https://YOUR-PROJECT.vercel.app
 application_url = "https://example.com"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
+include_config_on_deploy = true
 
 [access_scopes]
 scopes = "write_app_proxy"
@@ -16,7 +18,7 @@ scopes = "write_app_proxy"
 redirect_urls = [ "https://example.com/auth/callback" ]
 
 [webhooks]
-api_version = "2025-10"
+api_version = "2026-10"
 
   [[webhooks.subscriptions]]
   uri = "/webhooks/app/uninstalled"

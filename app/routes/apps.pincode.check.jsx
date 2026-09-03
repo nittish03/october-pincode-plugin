@@ -1,6 +1,6 @@
 import { authenticate } from "../shopify.server.js";
 import { getPincodeConfig } from "../lib/pincode-config.server.js";
-import { checkPincode } from "../lib/pincode.server.js";
+import { checkPincode } from "../lib/pincode.js";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.public.appProxy(request);
