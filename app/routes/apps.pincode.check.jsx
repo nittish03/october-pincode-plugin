@@ -17,7 +17,3 @@ export const loader = async ({ request }) => {
     },
   });
 };
-
-export default function PincodeCheckProxy() {
-  return null;
-}
