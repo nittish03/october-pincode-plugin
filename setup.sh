@@ -8,7 +8,7 @@ echo "==> Installing dependencies (if needed)..."
 npm install
 
 echo "==> Database: Prisma migrate + generate..."
-npx prisma migrate deploy
+node scripts/prisma-direct-url.mjs migrate deploy
 npx prisma generate
 
 if [[ ! -s .env ]]; then

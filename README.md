@@ -82,7 +82,8 @@ Env vars on Vercel:
 | `SHOPIFY_API_KEY` | Partner Dashboard client ID (alias: `API_KEY`) |
 | `SHOPIFY_API_SECRET` | Partner Dashboard secret (alias: `SECRET`) |
 | `SCOPES` | `write_app_proxy` |
-| `DATABASE_URL` | Neon Postgres pooled URL |
+| `DATABASE_URL` | Neon Postgres pooled URL (`-pooler` in hostname) |
+| `DIRECT_DATABASE_URL` | Neon direct URL (same host without `-pooler`) — used for migrations |
 | `SHOPIFY_APP_URL` | `https://pincode-plugin.vercel.app` |
 | `SHOP_CUSTOM_DOMAIN` | `octoberstore.in` — **required** for App Proxy on custom domain |
 
