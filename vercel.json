@@ -2,5 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "react-router",
   "installCommand": "npm install",
-  "buildCommand": "prisma generate && prisma migrate deploy && react-router build"
+  "buildCommand": "npx prisma generate && npx prisma migrate deploy && npm run build"
 }
