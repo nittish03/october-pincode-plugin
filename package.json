@@ -6,6 +6,7 @@
     "build": "react-router build",
     "dev": "shopify app dev",
     "start": "react-router-serve ./build/server/index.js",
+    "postinstall": "prisma generate",
     "setup": "prisma generate && prisma migrate deploy",
     "deploy": "shopify app deploy",
     "config:link": "shopify app config link",
