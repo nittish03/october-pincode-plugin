@@ -1,15 +1,24 @@
 import { Outlet, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
-import { BridgeReady } from "../components/bridge-ready.jsx";
 import { authenticate } from "../shopify.server.js";
 import { getShopifyApiKey } from "../utils/app-url.js";
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
+  try {
+    await authenticate.admin(request);
+  } catch (error) {
+    if (error instanceof Response) {
+      console.error("[app loader] authenticate.admin returned", error.status, request.url);
+      throw error;
+    }
+    console.error("[app loader] authenticate.admin failed", error);
+    throw error;
+  }
 
   const apiKey = getShopifyApiKey();
   if (!apiKey) {
+    console.error("[app loader] SHOPIFY_API_KEY is missing");
     throw new Response(
       "SHOPIFY_API_KEY is not configured. Set SHOPIFY_API_KEY (or API_KEY) in your hosting environment.",
       { status: 500, statusText: "Server Misconfiguration" },
@@ -32,19 +41,25 @@ export default function App() {
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      <s-app-nav>
-        <s-link href="/app">Delivery zones</s-link>
-      </s-app-nav>
-      <BridgeReady>
-        <Outlet />
-      </BridgeReady>
+      <nav
+        style={{
+          padding: "12px 20px",
+          borderBottom: "1px solid #e3e3e3",
+          fontFamily: "Inter, system-ui, sans-serif",
+        }}
+      >
+        <a href="/app" style={{ color: "#005bd3", textDecoration: "none", fontWeight: 500 }}>
+          Delivery zones
+        </a>
+      </nav>
+      <Outlet />
     </AppProvider>
   );
 }
 
 function AdminErrorFallback({ title, message }) {
   return (
-    <div style={{ padding: "2rem", fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div style={{ padding: "2rem", fontFamily: "Inter, system-ui, sans-serif", color: "#202223" }}>
       <h1 style={{ fontSize: "1.25rem", marginTop: 0 }}>{title}</h1>
       <p style={{ lineHeight: 1.5 }}>{message}</p>
     </div>
@@ -72,6 +87,15 @@ export function ErrorBoundary() {
         <AdminErrorFallback
           title="Session expired"
           message="Your admin session expired. Close this tab and reopen October Pincode from Shopify Admin."
+        />
+      );
+    }
+
+    if (error.status === 302 || error.status === 301) {
+      return (
+        <AdminErrorFallback
+          title="Redirecting to Shopify"
+          message="Completing sign-in… If this page stays blank, close the tab and reopen October Pincode from Shopify Admin."
         />
       );
     }

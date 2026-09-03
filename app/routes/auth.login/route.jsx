@@ -22,22 +22,43 @@ export default function Auth() {
 
   return (
     <AppProvider embedded={false}>
-      <s-page>
+      <div style={{ padding: "2rem", fontFamily: "Inter, system-ui, sans-serif", maxWidth: "480px" }}>
+        <h1 style={{ fontSize: "1.25rem", marginTop: 0 }}>Log in to October Pincode</h1>
         <Form method="post">
-          <s-section heading="Log in to October Pincode">
-            <s-text-field
+          <label style={{ display: "block", marginBottom: "12px" }}>
+            Shop domain
+            <input
               name="shop"
-              label="Shop domain"
-              details="octoberstore-2.myshopify.com"
               value={shop}
-              onChange={(event) => setShop(event.currentTarget.value)}
-              autocomplete="on"
-              error={errors.shop}
+              onChange={(event) => setShop(event.target.value)}
+              autoComplete="on"
+              placeholder="octoberstore-2.myshopify.com"
+              style={{
+                display: "block",
+                width: "100%",
+                marginTop: "4px",
+                padding: "8px",
+              }}
             />
-            <s-button type="submit">Log in</s-button>
-          </s-section>
+          </label>
+          {errors.shop && (
+            <p style={{ color: "#d72c0d", marginTop: 0 }}>{errors.shop}</p>
+          )}
+          <button
+            type="submit"
+            style={{
+              padding: "8px 16px",
+              borderRadius: "6px",
+              border: "1px solid #303030",
+              background: "#303030",
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            Log in
+          </button>
         </Form>
-      </s-page>
+      </div>
     </AppProvider>
   );
 }

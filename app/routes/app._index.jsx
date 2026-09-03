@@ -8,10 +8,42 @@ import {
 } from "../lib/pincode-config.server.js";
 import { checkPincode, isValidIndianPincode } from "../lib/pincode.js";
 
+const fieldStyle = { display: "block", width: "100%", marginTop: "4px", padding: "8px" };
+const labelStyle = { display: "block", marginBottom: "12px", fontWeight: 500 };
+const sectionStyle = {
+  border: "1px solid #e3e3e3",
+  borderRadius: "8px",
+  padding: "16px",
+  marginBottom: "16px",
+  background: "#fff",
+};
+const buttonStyle = {
+  padding: "8px 16px",
+  borderRadius: "6px",
+  border: "1px solid #c9cccf",
+  background: "#fff",
+  cursor: "pointer",
+};
+const primaryButtonStyle = {
+  ...buttonStyle,
+  background: "#303030",
+  color: "#fff",
+  borderColor: "#303030",
+};
+
 export const loader = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
-  const config = await getPincodeConfig(admin);
-  return { config };
+  try {
+    const { admin } = await authenticate.admin(request);
+    const config = await getPincodeConfig(admin);
+    return { config };
+  } catch (error) {
+    if (error instanceof Response) {
+      console.error("[app._index loader] auth response", error.status, request.url);
+      throw error;
+    }
+    console.error("[app._index loader] failed", error);
+    throw error;
+  }
 };
 
 export const action = async ({ request }) => {
@@ -71,18 +103,21 @@ function ZoneEditor({ zones, onChange }) {
             gap: "12px",
           }}
         >
-          <s-text-field
-            label="Zone name"
-            value={zone.name}
-            onChange={(event) => updateZone(index, { name: event.currentTarget.value })}
-          />
+          <label style={labelStyle}>
+            Zone name
+            <input
+              style={fieldStyle}
+              value={zone.name}
+              onChange={(event) => updateZone(index, { name: event.target.value })}
+            />
+          </label>
 
-          <label>
+          <label style={labelStyle}>
             Match type
             <select
               value={zone.type}
-              onChange={(event) => updateZone(index, { type: event.currentTarget.value })}
-              style={{ display: "block", marginTop: "4px", width: "100%" }}
+              onChange={(event) => updateZone(index, { type: event.target.value })}
+              style={fieldStyle}
             >
               <option value="prefix">Pincode prefix</option>
               <option value="range">Pincode range</option>
@@ -91,78 +126,95 @@ function ZoneEditor({ zones, onChange }) {
           </label>
 
           {zone.type === "prefix" && (
-            <s-text-field
-              label="Prefixes (comma-separated)"
-              details="Example: 110,400,560"
-              value={(zone.prefixes || []).join(",")}
-              onChange={(event) =>
-                updateZone(index, {
-                  prefixes: event.currentTarget.value
-                    .split(",")
-                    .map((value) => value.trim())
-                    .filter(Boolean),
-                })
-              }
-            />
+            <label style={labelStyle}>
+              Prefixes (comma-separated)
+              <input
+                style={fieldStyle}
+                placeholder="110,400,560"
+                value={(zone.prefixes || []).join(",")}
+                onChange={(event) =>
+                  updateZone(index, {
+                    prefixes: event.target.value
+                      .split(",")
+                      .map((value) => value.trim())
+                      .filter(Boolean),
+                  })
+                }
+              />
+            </label>
           )}
 
           {zone.type === "range" && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <s-text-field
-                label="From"
-                value={zone.ranges?.[0]?.from || ""}
-                onChange={(event) =>
-                  updateZone(index, {
-                    ranges: [{ from: event.currentTarget.value, to: zone.ranges?.[0]?.to || "" }],
-                  })
-                }
-              />
-              <s-text-field
-                label="To"
-                value={zone.ranges?.[0]?.to || ""}
-                onChange={(event) =>
-                  updateZone(index, {
-                    ranges: [{ from: zone.ranges?.[0]?.from || "", to: event.currentTarget.value }],
-                  })
-                }
-              />
+              <label style={labelStyle}>
+                From
+                <input
+                  style={fieldStyle}
+                  value={zone.ranges?.[0]?.from || ""}
+                  onChange={(event) =>
+                    updateZone(index, {
+                      ranges: [{ from: event.target.value, to: zone.ranges?.[0]?.to || "" }],
+                    })
+                  }
+                />
+              </label>
+              <label style={labelStyle}>
+                To
+                <input
+                  style={fieldStyle}
+                  value={zone.ranges?.[0]?.to || ""}
+                  onChange={(event) =>
+                    updateZone(index, {
+                      ranges: [{ from: zone.ranges?.[0]?.from || "", to: event.target.value }],
+                    })
+                  }
+                />
+              </label>
             </div>
           )}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-            <s-text-field
-              label="Min days"
-              type="number"
-              value={String(zone.minDays ?? 7)}
-              onChange={(event) =>
-                updateZone(index, { minDays: Number.parseInt(event.currentTarget.value, 10) || 0 })
-              }
-            />
-            <s-text-field
-              label="Max days"
-              type="number"
-              value={String(zone.maxDays ?? 10)}
-              onChange={(event) =>
-                updateZone(index, { maxDays: Number.parseInt(event.currentTarget.value, 10) || 0 })
-              }
-            />
+            <label style={labelStyle}>
+              Min days
+              <input
+                style={fieldStyle}
+                type="number"
+                value={String(zone.minDays ?? 7)}
+                onChange={(event) =>
+                  updateZone(index, { minDays: Number.parseInt(event.target.value, 10) || 0 })
+                }
+              />
+            </label>
+            <label style={labelStyle}>
+              Max days
+              <input
+                style={fieldStyle}
+                type="number"
+                value={String(zone.maxDays ?? 10)}
+                onChange={(event) =>
+                  updateZone(index, { maxDays: Number.parseInt(event.target.value, 10) || 0 })
+                }
+              />
+            </label>
             <label style={{ alignSelf: "end" }}>
               <input
                 type="checkbox"
                 checked={zone.serviceable !== false}
-                onChange={(event) => updateZone(index, { serviceable: event.currentTarget.checked })}
+                onChange={(event) => updateZone(index, { serviceable: event.target.checked })}
               />{" "}
               Serviceable
             </label>
           </div>
 
-          <s-button variant="tertiary" onClick={() => removeZone(index)}>
+          <button type="button" style={buttonStyle} onClick={() => removeZone(index)}>
             Remove zone
-          </s-button>
+          </button>
         </div>
       ))}
 
-      <s-button onClick={addZone}>Add zone</s-button>
+      <button type="button" style={buttonStyle} onClick={addZone}>
+        Add zone
+      </button>
     </div>
   );
 }
@@ -189,31 +241,48 @@ export default function Index() {
 
   const preview = useMemo(() => checkPincode(testPincode, config), [testPincode, config]);
   const isSaving = navigation.state !== "idle";
+  const pincodeError =
+    testPincode && !isValidIndianPincode(testPincode)
+      ? "Enter a valid 6-digit Indian pincode"
+      : null;
 
   return (
-    <s-page heading="October Pincode Delivery">
-      <s-section heading="Warehouse">
-        <s-text-field
-          label="Origin pincode"
-          details="Used for reference in admin. Delivery estimates are zone-based."
-          value={config.warehousePincode}
-          onChange={(event) =>
-            setConfig((current) => ({ ...current, warehousePincode: event.currentTarget.value }))
-          }
-        />
-      </s-section>
+    <div style={{ padding: "20px", fontFamily: "Inter, system-ui, sans-serif", color: "#202223" }}>
+      <h1 style={{ fontSize: "1.5rem", marginTop: 0 }}>October Pincode Delivery</h1>
 
-      <s-section heading="Non-serviceable message">
-        <s-text-field
-          label="Default message"
-          value={config.defaultMessage}
-          onChange={(event) =>
-            setConfig((current) => ({ ...current, defaultMessage: event.currentTarget.value }))
-          }
-        />
-      </s-section>
+      <section style={sectionStyle}>
+        <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>Warehouse</h2>
+        <label style={labelStyle}>
+          Origin pincode
+          <input
+            style={fieldStyle}
+            value={config.warehousePincode}
+            onChange={(event) =>
+              setConfig((current) => ({ ...current, warehousePincode: event.target.value }))
+            }
+          />
+        </label>
+        <p style={{ margin: "8px 0 0", color: "#6d7175", fontSize: "0.875rem" }}>
+          Used for reference in admin. Delivery estimates are zone-based.
+        </p>
+      </section>
 
-      <s-section heading="Delivery zones">
+      <section style={sectionStyle}>
+        <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>Non-serviceable message</h2>
+        <label style={labelStyle}>
+          Default message
+          <input
+            style={fieldStyle}
+            value={config.defaultMessage}
+            onChange={(event) =>
+              setConfig((current) => ({ ...current, defaultMessage: event.target.value }))
+            }
+          />
+        </label>
+      </section>
+
+      <section style={sectionStyle}>
+        <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>Delivery zones</h2>
         <p style={{ marginTop: 0 }}>
           Zones are evaluated top to bottom. Use a catch-all zone last for Rest of India.
         </p>
@@ -221,40 +290,42 @@ export default function Index() {
           zones={config.zones}
           onChange={(zones) => setConfig((current) => ({ ...current, zones }))}
         />
-      </s-section>
+      </section>
 
-      <s-section heading="Preview">
-        <s-text-field
-          label="Test pincode"
-          value={testPincode}
-          onChange={(event) => setTestPincode(event.currentTarget.value)}
-          error={
-            testPincode && !isValidIndianPincode(testPincode)
-              ? "Enter a valid 6-digit Indian pincode"
-              : undefined
-          }
-        />
+      <section style={sectionStyle}>
+        <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>Preview</h2>
+        <label style={labelStyle}>
+          Test pincode
+          <input
+            style={fieldStyle}
+            value={testPincode}
+            onChange={(event) => setTestPincode(event.target.value)}
+          />
+        </label>
+        {pincodeError && (
+          <p style={{ color: "#d72c0d", marginTop: 0 }}>{pincodeError}</p>
+        )}
         <pre style={{ background: "#f6f6f7", padding: "12px", borderRadius: "8px" }}>
           {JSON.stringify(preview, null, 2)}
         </pre>
-      </s-section>
+      </section>
 
       <Form method="post">
         <input type="hidden" name="warehousePincode" value={config.warehousePincode} />
         <input type="hidden" name="defaultMessage" value={config.defaultMessage} />
         <input type="hidden" name="zonesJson" value={JSON.stringify(config.zones)} />
-        <s-button type="submit" variant="primary" {...(isSaving ? { loading: true } : {})}>
-          Save settings
-        </s-button>
+        <button type="submit" style={primaryButtonStyle} disabled={isSaving}>
+          {isSaving ? "Saving…" : "Save settings"}
+        </button>
       </Form>
 
       <Form method="post" style={{ marginTop: "12px" }}>
         <input type="hidden" name="intent" value="reset" />
-        <s-button type="submit" variant="tertiary">
+        <button type="submit" style={buttonStyle} disabled={isSaving}>
           Restore India defaults
-        </s-button>
+        </button>
       </Form>
-    </s-page>
+    </div>
   );
 }
 
@@ -272,11 +343,10 @@ export function ErrorBoundary() {
     error instanceof Error ? error.message : "Could not load delivery settings.";
 
   return (
-    <s-page heading="October Pincode Delivery">
-      <s-section>
-        <p>{message}</p>
-      </s-section>
-    </s-page>
+    <div style={{ padding: "2rem", fontFamily: "Inter, system-ui, sans-serif" }}>
+      <h1 style={{ fontSize: "1.25rem", marginTop: 0 }}>October Pincode Delivery</h1>
+      <p>{message}</p>
+    </div>
   );
 }
 
