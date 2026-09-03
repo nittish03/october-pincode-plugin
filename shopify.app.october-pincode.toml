@@ -3,12 +3,11 @@
 client_id = "06ed9fe65a2d63a7db2fdce227c977a8"
 name = "October Pincode"
 # After Vercel deploy, set to your production URL, e.g. https://october-pincode.vercel.app
-application_url = "https://example.com"
+application_url = "https://pincode-plugin.vercel.app"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
-include_config_on_deploy = true
 
 [webhooks]
 api_version = "2026-10"
@@ -19,7 +18,7 @@ scopes = "write_app_proxy"
 
 [auth]
 # Match application_url after deploy, e.g. https://october-pincode.vercel.app/auth/callback
-redirect_urls = [ "https://example.com/auth/callback" ]
+redirect_urls = [ "https://pincode-plugin.vercel.app/auth/callback" ]
 
 [app_proxy]
 url = "/apps/pincode/check"
