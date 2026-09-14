@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  OCTOBER_COUNTRY_CODES,
   buildDefaultCountries,
   checkPincode,
   checkPostal,
+  getAdminCountryConfig,
   isValidPostal,
   normalizePincodeConfig,
   normalizePostal,
@@ -32,6 +34,63 @@ describe("normalizePincodeConfig", () => {
     assert.equal(normalized.zones[0].name, "Mumbai");
     assert.equal(normalized.countries.US.enabled, true);
     assert.equal(normalized.countries.US.zones[0].type, "catchall");
+  });
+
+  it("includes all October countries with pre-filled zones", () => {
+    const normalized = normalizePincodeConfig({
+      warehousePincode: "110001",
+      defaultMessage: "No delivery",
+      zones: buildDefaultCountries().IN.zones,
+    });
+
+    for (const code of OCTOBER_COUNTRY_CODES) {
+      assert.ok(normalized.countries[code], `missing country ${code}`);
+      assert.ok(normalized.countries[code].zones.length > 0, `missing zones for ${code}`);
+      assert.ok(
+        normalized.countries[code].zones.some((zone) => zone.type === "catchall"),
+        `missing catchall for ${code}`,
+      );
+    }
+
+    assert.equal(normalized.countries.IN.zones.length, 3);
+    assert.equal(normalized.countries.IN.zones[0].name, "Metro");
+    assert.equal(normalized.countries.US.zones[0].minDays, 10);
+    assert.equal(normalized.countries.US.zones[0].maxDays, 14);
+  });
+
+  it("fills missing countries when metafield only stores India", () => {
+    const normalized = normalizePincodeConfig({
+      warehousePincode: "110001",
+      defaultMessage: "No delivery",
+      zones: buildDefaultCountries().IN.zones,
+      countries: {
+        IN: {
+          enabled: true,
+          label: "India",
+          zones: buildDefaultCountries().IN.zones,
+        },
+      },
+    });
+
+    assert.equal(Object.keys(normalized.countries).length, OCTOBER_COUNTRY_CODES.length);
+    assert.equal(normalized.countries.DE.zones[0].name, "All Germany");
+  });
+
+  it("getAdminCountryConfig returns defaults for missing country entries", () => {
+    const legacy = normalizePincodeConfig({
+      warehousePincode: "110001",
+      defaultMessage: "No delivery",
+      zones: buildDefaultCountries().IN.zones,
+    });
+    const partial = {
+      ...legacy,
+      countries: { IN: legacy.countries.IN },
+    };
+
+    const us = getAdminCountryConfig(partial, "US");
+    assert.equal(us.zones.length, 1);
+    assert.equal(us.zones[0].type, "catchall");
+    assert.equal(us.zones[0].minDays, 10);
   });
 });
 

@@ -494,6 +494,66 @@ function normalizeZones(value) {
 }
 
 /**
+ * @param {string} countryCode
+ * @param {PincodeZone[]} zones
+ * @returns {PincodeZone[]}
+ */
+function ensureCountryZones(countryCode, zones) {
+  const defaults = buildDefaultCountries();
+  const code = normalizeCountryCode(countryCode);
+  const normalized =
+    Array.isArray(zones) && zones.length
+      ? zones.map((zone) => normalizeZone(zone))
+      : structuredClone(defaults[code].zones);
+
+  if (normalized.some((zone) => zone.type === "catchall")) {
+    return normalized;
+  }
+
+  const fallbackCatchall = defaults[code].zones.find((zone) => zone.type === "catchall");
+  if (fallbackCatchall) {
+    return [...normalized, structuredClone(fallbackCatchall)];
+  }
+
+  return normalized;
+}
+
+/**
+ * @param {PincodeConfig} config
+ * @param {string} countryCode
+ * @returns {CountryConfig}
+ */
+export function getAdminCountryConfig(config, countryCode) {
+  const code = normalizeCountryCode(countryCode);
+  const defaults = buildDefaultCountries();
+  const country = config?.countries?.[code];
+
+  if (!country) {
+    if (code === "IN" && config?.zones?.length) {
+      return {
+        enabled: true,
+        label: COUNTRY_META.IN.label,
+        zones: ensureCountryZones("IN", config.zones),
+      };
+    }
+    return structuredClone(defaults[code]);
+  }
+
+  const zones =
+    Array.isArray(country.zones) && country.zones.length
+      ? country.zones
+      : code === "IN" && config?.zones?.length
+        ? config.zones
+        : defaults[code].zones;
+
+  return {
+    enabled: country.enabled !== false,
+    label: String(country.label || defaults[code].label).trim() || defaults[code].label,
+    zones: ensureCountryZones(code, zones),
+  };
+}
+
+/**
  * @param {unknown} value
  * @returns {PincodeConfig}
  */
@@ -516,22 +576,32 @@ export function normalizePincodeConfig(value) {
         continue;
       }
 
+      const zones =
+        Array.isArray(countryInput.zones) && countryInput.zones.length
+          ? countryInput.zones.map((zone) => normalizeZone(zone))
+          : code === "IN"
+            ? indiaZones
+            : defaults[code].zones;
+
       countries[code] = {
         enabled: countryInput.enabled !== false,
         label: String(countryInput.label || defaults[code].label).trim() || defaults[code].label,
-        zones:
-          Array.isArray(countryInput.zones) && countryInput.zones.length
-            ? countryInput.zones.map((zone) => normalizeZone(zone))
-            : code === "IN"
-              ? indiaZones
-              : defaults[code].zones,
+        zones: ensureCountryZones(code, zones),
       };
     }
   } else {
     countries.IN = {
       enabled: true,
       label: COUNTRY_META.IN.label,
-      zones: indiaZones,
+      zones: ensureCountryZones("IN", indiaZones),
+    };
+  }
+
+  for (const code of OCTOBER_COUNTRY_CODES) {
+    countries[code] = {
+      ...defaults[code],
+      ...countries[code],
+      zones: ensureCountryZones(code, countries[code]?.zones || defaults[code].zones),
     };
   }
 

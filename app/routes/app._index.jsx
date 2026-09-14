@@ -10,8 +10,10 @@ import {
   COUNTRY_META,
   OCTOBER_COUNTRY_CODES,
   checkPostal,
+  getAdminCountryConfig,
   isValidPostal,
   normalizeCountryCode,
+  normalizePincodeConfig,
 } from "../lib/pincode.js";
 
 const fieldStyle = { display: "block", width: "100%", marginTop: "4px", padding: "8px", boxSizing: "border-box" };
@@ -334,14 +336,14 @@ export default function Index() {
   const actionData = useActionData();
   const navigation = useNavigation();
 
-  const [config, setConfig] = useState(initialConfig);
+  const [config, setConfig] = useState(() => normalizePincodeConfig(initialConfig));
   const [activeCountry, setActiveCountry] = useState("IN");
   const [testPostal, setTestPostal] = useState("110001");
   const [checkedPostal, setCheckedPostal] = useState(null);
 
   useEffect(() => {
     if (actionData?.config) {
-      setConfig(actionData.config);
+      setConfig(normalizePincodeConfig(actionData.config));
       setCheckedPostal(null);
     }
   }, [actionData?.config]);
@@ -353,11 +355,12 @@ export default function Index() {
   }, [actionData?.message]);
 
   const activeMeta = COUNTRY_META[activeCountry] || COUNTRY_META.IN;
-  const activeCountryConfig = config.countries?.[activeCountry] || {
-    enabled: true,
-    label: activeMeta.label,
-    zones: config.zones,
-  };
+  const visibleCountryCode =
+    activeCountry === "EU" ? EU_COUNTRY_CODES[0] : normalizeCountryCode(activeCountry);
+  const activeCountryConfig = getAdminCountryConfig(
+    config,
+    activeCountry === "EU" ? visibleCountryCode : activeCountry,
+  );
 
   const preview = useMemo(() => {
     if (!checkedPostal && checkedPostal !== "") {
@@ -370,17 +373,22 @@ export default function Index() {
   const isSaving = navigation.state !== "idle";
 
   const updateCountry = (countryCode, patch) => {
-    setConfig((current) => ({
-      ...current,
-      countries: {
-        ...current.countries,
-        [countryCode]: {
-          ...current.countries?.[countryCode],
-          ...patch,
+    setConfig((current) => {
+      const normalized = normalizePincodeConfig(current);
+      const nextCountry = {
+        ...normalized.countries[countryCode],
+        ...patch,
+      };
+
+      return {
+        ...normalized,
+        countries: {
+          ...normalized.countries,
+          [countryCode]: nextCountry,
         },
-      },
-      ...(countryCode === "IN" && patch.zones ? { zones: patch.zones } : {}),
-    }));
+        ...(countryCode === "IN" && patch.zones ? { zones: patch.zones } : {}),
+      };
+    });
   };
 
   const handleCheckPostal = () => {
@@ -398,8 +406,7 @@ export default function Index() {
     { code: "EU", label: "EU", isGroup: true },
   ];
 
-  const visibleCountryCode =
-    activeCountry === "EU" ? EU_COUNTRY_CODES[0] : normalizeCountryCode(activeCountry);
+  const saveConfig = useMemo(() => normalizePincodeConfig(config), [config]);
 
   return (
     <div style={pageStyle}>
@@ -505,26 +512,30 @@ export default function Index() {
         )}
 
         {activeCountry === "EU" &&
-          EU_COUNTRY_CODES.map((code) => (
-            <div key={code} style={{ marginBottom: "24px" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: "1rem" }}>{COUNTRY_META[code].label}</h3>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <input
-                  type="checkbox"
-                  checked={config.countries?.[code]?.enabled !== false}
-                  onChange={(event) => updateCountry(code, { enabled: event.target.checked })}
-                />
-                Enable delivery checker
-              </label>
-              {config.countries?.[code]?.enabled !== false && (
-                <ZoneEditor
-                  countryCode={code}
-                  zones={config.countries?.[code]?.zones || []}
-                  onChange={(zones) => updateCountry(code, { zones })}
-                />
-              )}
-            </div>
-          ))}
+          EU_COUNTRY_CODES.map((code) => {
+            const countryConfig = getAdminCountryConfig(config, code);
+
+            return (
+              <div key={code} style={{ marginBottom: "24px" }}>
+                <h3 style={{ margin: "0 0 12px", fontSize: "1rem" }}>{COUNTRY_META[code].label}</h3>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                  <input
+                    type="checkbox"
+                    checked={countryConfig.enabled !== false}
+                    onChange={(event) => updateCountry(code, { enabled: event.target.checked })}
+                  />
+                  Enable delivery checker
+                </label>
+                {countryConfig.enabled !== false && (
+                  <ZoneEditor
+                    countryCode={code}
+                    zones={countryConfig.zones}
+                    onChange={(zones) => updateCountry(code, { zones })}
+                  />
+                )}
+              </div>
+            );
+          })}
       </section>
 
       <section style={sectionStyle}>
@@ -590,10 +601,10 @@ export default function Index() {
       </section>
 
       <Form method="post">
-        <input type="hidden" name="warehousePincode" value={config.warehousePincode} />
-        <input type="hidden" name="defaultMessage" value={config.defaultMessage} />
-        <input type="hidden" name="zonesJson" value={JSON.stringify(config.countries?.IN?.zones || config.zones)} />
-        <input type="hidden" name="countriesJson" value={JSON.stringify(config.countries || {})} />
+        <input type="hidden" name="warehousePincode" value={saveConfig.warehousePincode} />
+        <input type="hidden" name="defaultMessage" value={saveConfig.defaultMessage} />
+        <input type="hidden" name="zonesJson" value={JSON.stringify(saveConfig.countries.IN.zones)} />
+        <input type="hidden" name="countriesJson" value={JSON.stringify(saveConfig.countries)} />
         <button type="submit" style={primaryButtonStyle} disabled={isSaving}>
           {isSaving ? "Saving…" : "Save"}
         </button>
