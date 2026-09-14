@@ -15,7 +15,8 @@
     "shopify": "shopify",
     "prisma": "prisma",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "node scripts/prisma-direct-url.mjs migrate deploy"
+    "prisma:migrate": "node scripts/prisma-direct-url.mjs migrate deploy",
+    "test": "node --test app/lib/pincode.test.js"
   },
   "engines": {
     "node": ">=20.19 <22 || >=22.12"

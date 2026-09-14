@@ -1,14 +1,18 @@
 import { authenticate } from "../shopify.server.js";
 import { getPincodeConfig } from "../lib/pincode-config.server.js";
-import { checkPincode } from "../lib/pincode.js";
+import { checkPostal, normalizeCountryCode } from "../lib/pincode.js";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.public.appProxy(request);
   const url = new URL(request.url);
-  const pincode = url.searchParams.get("pincode") || "";
+  const country = normalizeCountryCode(url.searchParams.get("country") || "IN");
+  const postal =
+    url.searchParams.get("postal") ||
+    url.searchParams.get("pincode") ||
+    "";
 
   const config = await getPincodeConfig(admin);
-  const result = checkPincode(pincode, config);
+  const result = checkPostal(country, postal, config);
 
   return Response.json(result, {
     headers: {

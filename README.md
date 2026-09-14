@@ -1,6 +1,8 @@
 # October Pincode — Shopify App
 
-Private Shopify app for **October Store** (`octoberstore-2.myshopify.com`) that checks Indian pincodes against configurable delivery zones and exposes a storefront App Proxy endpoint for the theme.
+Private Shopify app for **October Store** (`octoberstore-2.myshopify.com`) that checks postal codes by country against configurable delivery zones and exposes a storefront App Proxy endpoint for the theme.
+
+Supported countries: **IN, US, GB, AE, JP, CA, AU, DE, FR, IT, ES**.
 
 ## What you need to do
 
@@ -62,10 +64,18 @@ Then run `shopify app deploy` to sync TOML config.
 In the embedded app admin:
 
 1. Set **warehouse/origin pincode** (default `110001`).
-2. Review/edit zones: **Metro**, **Tier 2**, **Rest of India** (sensible defaults included).
-3. Set the **non-serviceable message**.
-4. Use the preview panel to test pincodes.
-5. Click **Save settings** — stored in shop metafield `custom.pincode_config` (JSON).
+2. Use **country tabs** (India, US, UK, UAE, Japan, Canada, Australia, EU) to enable markets and edit zones.
+3. India keeps the existing Metro / Tier 2 / Rest of India defaults. International markets start with a single catchall zone (10–14 business days).
+4. Set the **non-serviceable message**.
+5. Use the preview panel to test a country + postal code.
+6. Click **Save** — stored in shop metafield `custom.pincode_config` (JSON).
+
+#### International setup
+
+- Legacy India-only configs still work: top-level `zones` are migrated to `countries.IN.zones` automatically.
+- Each country has `enabled`, `label`, and `zones[]` (prefix, range, or catchall).
+- UAE accepts empty input or any value (no postal code system).
+- Theme passes `localization.country.iso_code` as `country` and the shopper input as `postal`.
 
 ### 6. Deploy the app (production — Vercel)
 
@@ -102,17 +112,33 @@ shopify theme push --store https://octoberstore-2.myshopify.com/ --theme 1622485
 
 ## App Proxy API
 
-**GET** `/apps/pincode/check?pincode=110001`
+**GET** `/apps/pincode/check?country=US&postal=90210`
+
+Backward compatible for India:
+
+**GET** `/apps/pincode/check?pincode=110001` (same as `country=IN&postal=110001`)
+
+| Country | Validation pattern | Example |
+|---------|-------------------|---------|
+| IN | `[1-9][0-9]{5}` | 110001 |
+| US | `[0-9]{5}(-[0-9]{4})?` | 90210 |
+| GB | UK postcode (lenient) | SW1A 1AA |
+| AE | optional (empty or any) | — |
+| CA | `[A-Z][0-9][A-Z] [0-9][A-Z][0-9]` | M5H 2N2 |
+| AU | `[0-9]{4}` | 2000 |
+| DE/FR/IT/ES | `[0-9]{5}` | 10115 |
+| JP | `[0-9]{3}-?[0-9]{4}` | 100-0001 |
 
 **Response (serviceable):**
 
 ```json
 {
   "serviceable": true,
-  "minDays": 3,
-  "maxDays": 5,
-  "message": "Delivery in 3-5 business days",
-  "zone": "Metro"
+  "country": "US",
+  "minDays": 10,
+  "maxDays": 14,
+  "message": "Delivery in 10-14 business days",
+  "zone": "All United States"
 }
 ```
 
@@ -121,11 +147,10 @@ shopify theme push --store https://octoberstore-2.myshopify.com/ --theme 1622485
 ```json
 {
   "serviceable": false,
+  "country": "IN",
   "message": "Please enter a valid 6-digit Indian pincode."
 }
 ```
-
-Validation: 6-digit Indian pincode (`/^[1-9][0-9]{5}$/`).
 
 ---
 
@@ -149,7 +174,8 @@ If checks fail locally, confirm the tunnel is running and the app proxy subpath 
 october-pincode-app/
 ├── app/
 │   ├── lib/
-│   │   ├── pincode.js                 # Validation + zone matching
+│   │   ├── pincode.js                 # International validation + zone matching
+│   │   ├── pincode.test.js            # Unit tests (npm test)
 │   │   └── pincode-config.server.js   # Shop metafield read/write
 │   ├── routes/
 │   │   ├── app._index.jsx             # Admin UI
